@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=EdiCPP
-Comment=Editor C++ leggero con terminale integrato — Windows 98 Edition
-Exec=bash -c 'cd %k/.. 2>/dev/null || cd /home/fra/Documents/edicpp; ./run.sh'
+Comment=Editor C++ leggero con terminale integrato
+Exec=bash -c 'cd "$(dirname "%k")" 2>/dev/null; ./run.sh'
 Icon=accessories-text-editor
 Terminal=false
 Type=Application

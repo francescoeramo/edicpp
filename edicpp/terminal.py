@@ -234,9 +234,10 @@ class EmbeddedTerminal(QWidget):
                     return True
 
                 if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                    text = self._get_input_text()
+                    # i caratteri digitati sono già nel buffer del pty (inviati uno a uno),
+                    # basta inviare newline per sottomettere la riga — altrimenti duplica
                     if self.master_fd:
-                        try: os.write(self.master_fd, (text + "\n").encode())
+                        try: os.write(self.master_fd, b"\n")
                         except OSError: pass
                     nc = self.output.textCursor()
                     nc.movePosition(QTextCursor.MoveOperation.End)
@@ -288,9 +289,7 @@ class EmbeddedTerminal(QWidget):
         if self.master_fd:
             try:
                 os.write(self.master_fd, (cmd + "\n").encode())
-                # mostra comando come se digitato
-                self._append(f"{cmd}\n", "#ffffff")
-                self._input_start = self.output.document().characterCount() - 1
+                # l'echo del pty mostrerà il comando, non serve append manuale (evita duplicazione)
             except OSError:
                 pass
 

@@ -11,20 +11,20 @@ class CppHighlighter(QSyntaxHighlighter):
         fmt = QTextCharFormat()
         fmt.setForeground(QColor(color))
         if bold:
-            fmt.setFontWeight(QFont.Weight.Bold)
+            fmt.setFontWeight(QFont.Weight.DemiBold)
         if italic:
             fmt.setFontItalic(True)
         return fmt
 
     def _init_rules(self):
-        # Retro amber/green phosphor palette on deep brown #0a0804
-        kw_fmt   = self._fmt("#ff7a00", bold=True)   # keywords - hot amber/orange
-        type_fmt = self._fmt("#ffd23f", bold=True)   # types - bright amber
-        num_fmt  = self._fmt("#ff9e64")              # numbers - peach
-        str_fmt  = self._fmt("#7ec869")              # strings - phosphor green
-        com_fmt  = self._fmt("#8a7a5a", italic=True) # comments - muted brown
-        pre_fmt  = self._fmt("#ff4d4d")              # preprocessor - red
-        func_fmt = self._fmt("#ffb000")              # functions - amber
+        # Arcade neon on deep navy #06080f
+        kw_fmt   = self._fmt("#ff2e97", bold=True)   # keywords magenta neon
+        type_fmt = self._fmt("#00e5ff")              # types cyan neon
+        num_fmt  = self._fmt("#ffea00")              # numbers yellow arcade
+        str_fmt  = self._fmt("#00ff88")              # strings green neon
+        com_fmt  = self._fmt("#6b73a3", italic=True) # comments muted
+        pre_fmt  = self._fmt("#ff6b35")              # preprocessor orange
+        func_fmt = self._fmt("#ffe600")              # functions yellow
 
         keywords = [
             "alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch",

@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont, QTextCursor, QColor, QTextCharFormat
 
 
 class EmbeddedTerminal(QWidget):
-    """Embedded interactive terminal at bottom. Uses pty + bash. Retro amber style."""
+    """Arcade terminal — neon cyan on deep navy."""
     def __init__(self, workdir=None, parent=None):
         super().__init__(parent)
         self.workdir = workdir or os.path.expanduser("~")
@@ -27,47 +27,57 @@ class EmbeddedTerminal(QWidget):
         layout.setSpacing(0)
 
         header = QWidget()
-        header.setStyleSheet("background:#f4e8c1; border-bottom:3px solid #1a1207; border-top:2px solid #3d2810;")
+        header.setFixedHeight(34)
+        header.setStyleSheet("background:#0a0c1e; border:1px solid #1e2348; border-radius:8px;")
         hl = QHBoxLayout(header)
-        hl.setContentsMargins(10, 4, 6, 4)
+        hl.setContentsMargins(10, 4, 8, 4)
         hl.setSpacing(8)
-        title = QLabel("▓ TERMINALE  [bash]  ■ REC")
-        title.setStyleSheet("color:#1a1207; font-size:10px; font-weight:bold; letter-spacing:1px; border:none;")
+        title = QLabel("◉ TERMINALE")
+        title.setStyleSheet("color:#00e5ff; font-size:10px; font-weight:500; letter-spacing:0.8px; border:none;")
         hl.addWidget(title)
+        # scanline hint
+        hint = QLabel("— bash — arcade ready")
+        hint.setStyleSheet("color:#6b73a3; font-size:10px; font-weight:400; border:none;")
+        hl.addWidget(hint)
         hl.addStretch()
-        # retro led
-        led = QLabel("●")
-        led.setStyleSheet("color:#00c800; font-size:14px; border:none;")
+        led = QLabel("● REC")
+        led.setStyleSheet("color:#ff2e97; font-size:10px; font-weight:500; border:none;")
         hl.addWidget(led)
-        self.clear_btn = QPushButton("[ PULISCI ]")
+        self.clear_btn = QPushButton("Pulisci")
         self.clear_btn.setFixedHeight(24)
-        self.clear_btn.setFixedWidth(94)
+        self.clear_btn.setFixedWidth(72)
+        # override to lighter weight
+        self.clear_btn.setStyleSheet("font-weight:400; font-size:11px;")
         self.clear_btn.clicked.connect(lambda: self.output.clear())
         hl.addWidget(self.clear_btn)
+        # add small bottom spacing container to avoid overlap
+        wrapper = QWidget()
+        wl = QVBoxLayout(wrapper)
+        wl.setContentsMargins(0, 0, 0, 0)
+        wl.setSpacing(6)
+        wl.addWidget(header)
 
-        layout.addWidget(header)
+        layout.addWidget(wrapper)
 
         self.output = QPlainTextEdit()
         self.output.setReadOnly(False)
         self.output.setStyleSheet("""
             QPlainTextEdit {
-                background:#0a0804;
-                border:2px solid #3d2810;
-                border-top:none;
-                color:#ffb000;
-                font-family:'IBM Plex Mono','JetBrains Mono','Courier New',monospace;
+                background:#06080f;
+                border:1px solid #1e2348;
+                border-radius:8px;
+                color:#dbe2ff;
+                font-family:'JetBrains Mono','IBM Plex Mono','Courier New',monospace;
                 font-size:12px;
-                padding:6px;
+                padding:8px;
             }
         """)
-        font = QFont("IBM Plex Mono")
+        font = QFont("JetBrains Mono")
         if not font.exactMatch():
-            font = QFont("JetBrains Mono")
+            font = QFont("IBM Plex Mono")
         font.setPointSize(10)
-        font.setStyleHint(QFont.StyleHint.Monospace)
+        font.setWeight(QFont.Weight.Normal)
         self.output.setFont(font)
-        self.input_history = []
-        self.hist_idx = -1
         layout.addWidget(self.output, 1)
         self.output.installEventFilter(self)
 
@@ -80,7 +90,7 @@ class EmbeddedTerminal(QWidget):
             stdout=slave_fd,
             stderr=slave_fd,
             cwd=self.workdir,
-            env={**os.environ, "PS1": r"\[\e[38;5;214m\]▶\[\e[0m\] ", "TERM": "xterm-256color"},
+            env={**os.environ, "PS1": r"\[\e[38;5;51m\]▸\[\e[0m\] ", "TERM": "xterm-256color"},
             text=False,
             bufsize=0,
         )
@@ -88,7 +98,7 @@ class EmbeddedTerminal(QWidget):
         import fcntl
         flags = fcntl.fcntl(self.master_fd, fcntl.F_GETFL)
         fcntl.fcntl(self.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-        self._append("\n", "#8a7a5a")
+        self._append("\n", "#6b73a3")
 
     def _read_output(self):
         if self.master_fd is None:
@@ -111,11 +121,8 @@ class EmbeddedTerminal(QWidget):
         cursor = self.output.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         fmt = QTextCharFormat()
-        if color:
-            fmt.setForeground(QColor(color))
-        else:
-            fmt.setForeground(QColor("#ffb000"))
-        cursor.insertText(text, fmt) if color else cursor.insertText(text)
+        fmt.setForeground(QColor(color) if color else QColor("#dbe2ff"))
+        cursor.insertText(text, fmt)
         self.output.setTextCursor(cursor)
         self.output.ensureCursorVisible()
         sb = self.output.verticalScrollBar()
@@ -131,36 +138,25 @@ class EmbeddedTerminal(QWidget):
                 return True
             if mods & Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_C:
                 if self.master_fd:
-                    try:
-                        os.write(self.master_fd, b"\x03")
-                    except OSError:
-                        pass
+                    try: os.write(self.master_fd, b"\x03")
+                    except OSError: pass
                 return True
             if mods & Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_D:
                 if self.master_fd:
-                    try:
-                        os.write(self.master_fd, b"\x04")
-                    except OSError:
-                        pass
+                    try: os.write(self.master_fd, b"\x04")
+                    except OSError: pass
                 return True
             if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 cursor = self.output.textCursor()
                 cursor.select(QTextCursor.SelectionType.LineUnderCursor)
                 line = cursor.selectedText()
-                if "▶" in line:
-                    cmd = line.split("▶")[-1].strip()
-                else:
-                    block_text = self.output.textCursor().block().text()
-                    cmd = block_text.strip()
-                to_send = cmd
+                cmd = line.split("▸")[-1].strip() if "▸" in line else self.output.textCursor().block().text().strip()
                 if self.master_fd:
-                    try:
-                        os.write(self.master_fd, (to_send + "\n").encode())
-                    except OSError:
-                        pass
-                new_cursor = self.output.textCursor()
-                new_cursor.movePosition(QTextCursor.MoveOperation.End)
-                self.output.setTextCursor(new_cursor)
+                    try: os.write(self.master_fd, (cmd + "\n").encode())
+                    except OSError: pass
+                nc = self.output.textCursor()
+                nc.movePosition(QTextCursor.MoveOperation.End)
+                self.output.setTextCursor(nc)
                 return True
         return super().eventFilter(obj, event)
 
@@ -168,7 +164,7 @@ class EmbeddedTerminal(QWidget):
         if self.master_fd:
             try:
                 os.write(self.master_fd, (cmd + "\n").encode())
-                self._append(f"\n$ {cmd}\n", "#ff7a00")
+                self._append(f"\n$ {cmd}\n", "#00e5ff")
             except OSError:
                 pass
 
@@ -179,13 +175,9 @@ class EmbeddedTerminal(QWidget):
     def closeEvent(self, event):
         self.timer.stop()
         if self.proc:
-            try:
-                os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
-            except Exception:
-                pass
+            try: os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
+            except Exception: pass
         if self.master_fd:
-            try:
-                os.close(self.master_fd)
-            except Exception:
-                pass
+            try: os.close(self.master_fd)
+            except Exception: pass
         super().closeEvent(event)

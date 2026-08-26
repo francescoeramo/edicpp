@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import re
+import shlex
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -54,7 +55,6 @@ class CodeEditor(QPlainTextEdit):
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setTabStopDistance(QFontMetricsF(font).horizontalAdvance(' ') * 4)
         self.highlighter = CppHighlighter(self.document())
-        # Win98 editor — bianco, testo nero
         self.setStyleSheet("""
             QPlainTextEdit {
                 background:#ffffff;
@@ -108,7 +108,6 @@ class CodeEditor(QPlainTextEdit):
                 is_current = (block_number == self.textCursor().blockNumber())
                 painter.setPen(QColor("#000000") if is_current else QColor("#404040"))
                 f = painter.font()
-                # Win98: numeri non grassetto esagerato, solo normale
                 f.setWeight(QFont.Weight.Normal)
                 f.setPointSize(9)
                 f.setFamily("MS Sans Serif")
@@ -141,8 +140,6 @@ class CodeEditor(QPlainTextEdit):
             super().keyPressEvent(event)
             self.insertPlainText(indent)
             return
-        # — auto-chiusura corretta: evita ()) —
-        # se premi chiusura e il carattere successivo è già quella chiusura, salta
         closing = {")": "(", "]": "[", "}": "{", '"': '"', "'": "'"}
         nxt_char = ""
         cursor = self.textCursor()
@@ -150,7 +147,6 @@ class CodeEditor(QPlainTextEdit):
         if cursor.positionInBlock() < len(block_text):
             nxt_char = block_text[cursor.positionInBlock()]
         if event.text() in closing and nxt_char == event.text():
-            # salta la chiusura già presente
             cursor.movePosition(QTextCursor.MoveOperation.Right)
             self.setTextCursor(cursor)
             return
@@ -158,7 +154,6 @@ class CodeEditor(QPlainTextEdit):
         if event.text() in pairs:
             super().keyPressEvent(event)
             if event.text() in "([{":
-                # inserisci chiusura solo se non c'è già
                 if nxt_char != pairs[event.text()]:
                     cur = self.textCursor()
                     pos = cur.position()
@@ -178,9 +173,7 @@ class CodeEditor(QPlainTextEdit):
             return
         super().keyPressEvent(event)
 
-    # ── line move ──
     def move_line(self, direction: int):
-        """Move current line up (-1) or down (+1). Preserves cursor column."""
         cursor = self.textCursor()
         block = cursor.block()
         target = block.previous() if direction == -1 else block.next()
@@ -189,31 +182,20 @@ class CodeEditor(QPlainTextEdit):
         col = cursor.positionInBlock()
         cur_text = block.text()
         tgt_text = target.text()
-
-        # Use document block numbers to swap
         doc = self.document()
         cur_bn = block.blockNumber()
         tgt_bn = target.blockNumber()
-
-        # Ensure we edit in correct order to keep positions valid
         cursor.beginEditBlock()
-        # Replace texts
-        # First replace the block that is later in document
         first_bn = max(cur_bn, tgt_bn)
         second_bn = min(cur_bn, tgt_bn)
-        # Determine which text goes where
-        # If moving up: prev gets cur_text, cur gets tgt_text
-        # If moving down: cur gets tgt_text, next gets cur_text
-        for bn, new_text in [(cur_bn, tgt_text), (tgt_bn, cur_text)]:
+        edits = {cur_bn: tgt_text, tgt_bn: cur_text}
+        for bn in [first_bn, second_bn]:
             b = doc.findBlockByNumber(bn)
             c = QTextCursor(b)
-            # select whole line without newline
             c.movePosition(QTextCursor.MoveOperation.StartOfLine)
             c.movePosition(QTextCursor.MoveOperation.EndOfLine, QTextCursor.MoveMode.KeepAnchor)
-            c.insertText(new_text)
+            c.insertText(edits[bn])
         cursor.endEditBlock()
-
-        # Restore cursor on moved line
         new_bn = tgt_bn
         new_block = doc.findBlockByNumber(new_bn)
         new_cursor = QTextCursor(new_block)
@@ -251,8 +233,6 @@ class CodeEditor(QPlainTextEdit):
     def _fm(self):
         return super().fontMetrics()
 
-
-# ───────────────── Search Bar ─────────────────
 
 class SearchBar(QWidget):
     def __init__(self, editor_getter, parent=None):
@@ -309,8 +289,6 @@ class SearchBar(QWidget):
         ed.find(self.input.text(), QTextDocument.FindFlag.FindBackward)
 
 
-# ───────────────── Guide Dialog ─────────────────
-
 class GuideDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -321,30 +299,24 @@ class GuideDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(0)
-
-        # Win98 title bar navy
         title_bar = QLabel("  EdiCPP — Guida")
         title_bar.setObjectName("Title")
         title_bar.setFixedHeight(20)
         layout.addWidget(title_bar)
-
         subtitle = QLabel("Windows 98 Edition  •  Teal #008080  •  Fedora  •  C++17")
         subtitle.setObjectName("Subtitle")
         subtitle.setStyleSheet("background:#c0c0c0; color:#000000; padding:4px 6px; font-size:11px; font-weight:400; border:none;")
         layout.addWidget(subtitle)
-
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet("color:#808080;")
         layout.addWidget(sep)
-
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("QScrollArea{border:none; background:transparent;} QWidget{background:transparent;}")
         inner = QWidget()
         v = QVBoxLayout(inner)
         v.setSpacing(12)
-
         def section(heading, items):
             h = QLabel(heading)
             h.setObjectName("Heading")
@@ -362,7 +334,6 @@ class GuideDialog(QDialog):
                 row.addWidget(lbl, 1)
                 v.addLayout(row)
             v.addSpacing(4)
-
         section("Scorciatoie", [
             "<b>Ctrl + N</b> — Nuovo &nbsp; <b>Ctrl + O</b> — Apri &nbsp; <b>Ctrl + S</b> — Salva &nbsp; <b>Ctrl + Shift + S</b> — Salva con nome",
             "<b>Ctrl + F</b> — Cerca &nbsp; <b>Ctrl + /</b> — Commenta &nbsp; <b>Ctrl + Z / Y</b> — Annulla/Ripeti",
@@ -377,7 +348,7 @@ class GuideDialog(QDialog):
         ])
         section("Terminale (in basso)", [
             "Bash vera via <b>pty</b>: supporta input, <b>Ctrl+C</b>, <b>Ctrl+L</b>, <code>make</code>, <code>gdb</code>.",
-            "Pulsante <b>Pulisci</b> per svuotare. Prompt <b>C:\\></b>.",
+            "Pulsante <b>Pulisci</b> per svuotare. Prompt <b>C:\\&gt;</b>.",
         ])
         section("Tips anni '90", [
             "Tema <b>Windows 98</b>: desktop teal #008080, finestre grigie #C0C0C0, title bar navy #000080.",
@@ -388,14 +359,10 @@ class GuideDialog(QDialog):
         section("Requisiti", [
             "<b>g++</b> (<code>sudo dnf install gcc-c++</code>), <b>Python 3.10+</b>, <b>PyQt6</b>.",
         ])
-
         v.addStretch()
         scroll.setWidget(inner)
-        # scroll sunken inset like Win98
         scroll.setStyleSheet("QScrollArea{border-top:2px solid #404040; border-left:2px solid #404040; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; background:#c0c0c0;}")
         layout.addWidget(scroll, 1)
-
-        # Bottoni Win98 in basso — OK Cancel Apply come screenshot
         btn_row = QHBoxLayout()
         btn_row.setContentsMargins(0, 8, 0, 0)
         btn_row.setSpacing(6)
@@ -417,8 +384,6 @@ class GuideDialog(QDialog):
         btn_row.addWidget(btn_apply)
         layout.addLayout(btn_row)
 
-
-# ───────────────── Main Window ─────────────────
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -443,7 +408,6 @@ class MainWindow(QMainWindow):
         m_run  = menubar.addMenu(" RUN ")
         m_view = menubar.addMenu(" VIEW ")
         m_help = menubar.addMenu(" HELP ")
-
         def act(text, shortcut, slot, menu):
             a = QAction(text, self)
             if shortcut:
@@ -451,7 +415,6 @@ class MainWindow(QMainWindow):
             a.triggered.connect(slot)
             menu.addAction(a)
             return a
-
         act("Nuovo file", "Ctrl+N", self.new_file, m_file)
         act("Apri file…", "Ctrl+O", self.open_file, m_file)
         act("Apri cartella…", "Ctrl+K", self.open_folder, m_file)
@@ -461,7 +424,6 @@ class MainWindow(QMainWindow):
         m_file.addSeparator()
         act("Chiudi scheda", "Ctrl+W", self.close_current_tab, m_file)
         act("Esci", "Ctrl+Q", self.close, m_file)
-
         act("Annulla", "Ctrl+Z", lambda: self.current_editor() and self.current_editor().undo(), m_edit)
         act("Ripeti", "Ctrl+Y", lambda: self.current_editor() and self.current_editor().redo(), m_edit)
         m_edit.addSeparator()
@@ -470,7 +432,6 @@ class MainWindow(QMainWindow):
         m_edit.addSeparator()
         act("Sposta riga su", "Alt+Up", self.move_line_up, m_edit)
         act("Sposta riga giù", "Alt+Down", self.move_line_down, m_edit)
-        # duplicate for Shift+Alt
         a_up2 = QAction("Sposta riga su (alt)", self)
         a_up2.setShortcut(QKeySequence("Shift+Alt+Up"))
         a_up2.triggered.connect(self.move_line_up)
@@ -483,33 +444,26 @@ class MainWindow(QMainWindow):
         act("Aumenta zoom", "Ctrl+=", self.zoom_in, m_edit)
         act("Aumenta zoom (+)", "Ctrl++", self.zoom_in, m_edit)
         act("Riduci zoom", "Ctrl+-", self.zoom_out, m_edit)
-        # shortcut globali anche con focus nell'editor (fix Ctrl+Plus che altrimenti non arriva)
         QShortcut(QKeySequence("Ctrl++"), self, self.zoom_in)
         QShortcut(QKeySequence("Ctrl+="), self, self.zoom_in)
         QShortcut(QKeySequence("Ctrl+-"), self, self.zoom_out)
         QShortcut(QKeySequence("Ctrl+_"), self, self.zoom_out)
-
         act("Compila", "Ctrl+B", self.compile_only, m_run)
         act("Compila & Esegui", "F5", self.compile_run, m_run)
-
         self.act_toggle_explorer = QAction("Explorer", self)
         self.act_toggle_explorer.setShortcut("Ctrl+E")
         self.act_toggle_explorer.setCheckable(True)
         self.act_toggle_explorer.setChecked(True)
         self.act_toggle_explorer.triggered.connect(self.toggle_explorer)
         m_view.addAction(self.act_toggle_explorer)
-
         self.act_toggle_terminal = QAction("Terminale", self)
         self.act_toggle_terminal.setShortcut("Ctrl+J")
         self.act_toggle_terminal.setCheckable(True)
         self.act_toggle_terminal.setChecked(True)
         self.act_toggle_terminal.triggered.connect(self.toggle_terminal)
         m_view.addAction(self.act_toggle_terminal)
-
         act("Guida", "F1", self.show_guide, m_help)
         act("Informazioni", "", self.show_about, m_help)
-
-        # — Toolbar — arcade pulita, no sovrapposizioni, testi leggibili non grassetto
         tb = QToolBar("MAIN")
         tb.setMovable(False)
         tb.setFloatable(False)
@@ -534,21 +488,16 @@ class MainWindow(QMainWindow):
         tb_btn("▶ Esegui", self.compile_run, "Compila & Esegui (F5)")
         tb.addSeparator()
         tb_btn("Guida", self.show_guide, "Guida (F1)")
-
-        # — Central — Win98: desktop teal, area grigia incassata
         central = QWidget()
         central.setStyleSheet("background:#c0c0c0;")
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
         root_layout.setContentsMargins(4, 4, 4, 4)
         root_layout.setSpacing(4)
-
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.setHandleWidth(4)
         self.main_splitter.setStyleSheet("QSplitter::handle{background:#c0c0c0;}")
         self.main_splitter.setChildrenCollapsible(False)
-
-        # Explorer — Win98 header grigio rialzato
         self.explorer_wrap = QWidget()
         self.explorer_wrap.setStyleSheet("background:#c0c0c0;")
         self.explorer_wrap.setMinimumWidth(200)
@@ -572,7 +521,6 @@ class MainWindow(QMainWindow):
         self.btn_open_folder.setStyleSheet("font-weight:400; font-size:11px; padding:1px 6px;")
         eh.addWidget(self.btn_open_folder)
         exp_layout.addWidget(exp_header)
-
         self.tree = QTreeView()
         self.model = None
         self._set_folder_model(self.current_folder)
@@ -581,21 +529,15 @@ class MainWindow(QMainWindow):
         self.tree.setIndentation(14)
         self.tree.setExpandsOnDoubleClick(True)
         exp_layout.addWidget(self.tree, 1)
-
         self.main_splitter.addWidget(self.explorer_wrap)
-
-        # Right side
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
-
         self.search_bar = SearchBar(self.current_editor)
-        # tabs + terminal inside vertical splitter
         self.vertical_splitter = QSplitter(Qt.Orientation.Vertical)
         self.vertical_splitter.setHandleWidth(6)
         self.vertical_splitter.setChildrenCollapsible(False)
-
         tabs_container = QWidget()
         tc_l = QVBoxLayout(tabs_container)
         tc_l.setContentsMargins(0, 0, 0, 0)
@@ -608,36 +550,27 @@ class MainWindow(QMainWindow):
         self.tabs.setElideMode(Qt.TextElideMode.ElideRight)
         self.tabs.setUsesScrollButtons(True)
         tc_l.addWidget(self.tabs, 1)
-
         self.terminal = EmbeddedTerminal(workdir=self.current_folder)
         self.terminal.setMinimumHeight(120)
-
         self.vertical_splitter.addWidget(tabs_container)
         self.vertical_splitter.addWidget(self.terminal)
         self.vertical_splitter.setSizes([520, 220])
         self.vertical_splitter.setStretchFactor(0, 3)
         self.vertical_splitter.setStretchFactor(1, 1)
-
         right_layout.addWidget(self.vertical_splitter, 1)
-
         self.main_splitter.addWidget(right)
         self.main_splitter.setSizes([250, 900])
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
-
         root_layout.addWidget(self.main_splitter, 1)
-
-        # — Footer Win98 — pannelli incassati separati, NO sovrapposizione
         sb = QStatusBar()
         sb.setSizeGripEnabled(False)
         sb.setFixedHeight(24)
         sb.setStyleSheet("QStatusBar{ background:#c0c0c0; border-top:1px solid #ffffff; }")
         self.setStatusBar(sb)
-        # area messaggio a sinistra (stretch)
         self.lbl_hint = QLabel(" Pronto ")
         self.lbl_hint.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
         self.lbl_hint.setMinimumWidth(80)
-        # pannelli a destra fissi, larghezze compatte per non accavallarsi
         self.lbl_cursor = QLabel("Ln 1, Col 1")
         self.lbl_cursor.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
         self.lbl_cursor.setFixedWidth(110)
@@ -661,12 +594,12 @@ class MainWindow(QMainWindow):
         sb.addPermanentWidget(self.lbl_encoding, 0)
         sb.addPermanentWidget(self.lbl_lang, 0)
         sb.addPermanentWidget(self.lbl_time, 0)
-        # timer orario Win98
         from PyQt6.QtCore import QTimer
+        import time as _time
         self._clock = QTimer(self)
-        self._clock.timeout.connect(lambda: self.lbl_time.setText(" " + __import__('time').strftime("%I:%M %p")))
+        self._clock.timeout.connect(lambda: self.lbl_time.setText(" " + _time.strftime("%I:%M %p")))
         self._clock.start(60000)
-        self.lbl_time.setText(" " + __import__('time').strftime("%I:%M %p"))
+        self.lbl_time.setText(" " + _time.strftime("%I:%M %p"))
 
     def _set_folder_model(self, path):
         from PyQt6.QtGui import QFileSystemModel
@@ -696,7 +629,7 @@ class MainWindow(QMainWindow):
         if ed:
             try:
                 ed.cursorPositionChanged.disconnect(self.update_cursor_label)
-            except:
+            except Exception:
                 pass
             ed.cursorPositionChanged.connect(self.update_cursor_label)
             self.update_cursor_label()
@@ -841,7 +774,6 @@ class MainWindow(QMainWindow):
         ed = self.current_editor()
         if ed:
             f = ed.font()
-            # gestisce sia pointSize che pixelSize (Courier/MS Sans fallback usa pixelSize)
             if f.pointSize() > 0:
                 f.setPointSize(min(28, f.pointSize() + 1))
             elif f.pixelSize() > 0:
@@ -898,7 +830,7 @@ class MainWindow(QMainWindow):
         if not src:
             return
         out = str(Path(src).with_suffix(""))
-        cmd = f'g++ -std=c++17 -O2 -Wall -Wextra -o "{out}" "{src}" && echo "■ COMPILATO → {out}"'
+        cmd = f"g++ -std=c++17 -O2 -Wall -Wextra -o {shlex.quote(out)} {shlex.quote(src)} && echo \"■ COMPILATO → {out}\""
         self.terminal.setVisible(True)
         self.act_toggle_terminal.setChecked(True)
         self.vertical_splitter.setSizes([400, 300])
@@ -909,7 +841,7 @@ class MainWindow(QMainWindow):
         if not src:
             return
         out = str(Path(src).with_suffix(""))
-        cmd = f'g++ -std=c++17 -O2 -Wall -Wextra -o "{out}" "{src}" && echo "■ COMPILATO. ESECUZIONE..." && "{out}"'
+        cmd = f"g++ -std=c++17 -O2 -Wall -Wextra -o {shlex.quote(out)} {shlex.quote(src)} && echo \"■ COMPILATO. ESECUZIONE...\" && {shlex.quote(out)}"
         self.terminal.setVisible(True)
         self.act_toggle_terminal.setChecked(True)
         self.vertical_splitter.setSizes([380, 340])
@@ -940,7 +872,7 @@ class MainWindow(QMainWindow):
                 break
         try:
             self.terminal.timer.stop()
-        except:
+        except Exception:
             pass
         event.accept()
 

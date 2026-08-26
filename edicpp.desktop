@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=EdiCpp
+Comment=Editor C++ leggero con terminale integrato
+Exec=bash -c 'cd %k/.. 2>/dev/null || cd /home/fra/Documents/edicpp; ./run.sh'
+Icon=accessories-text-editor
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+Keywords=cpp;c++;editor;ide;
+StartupWMClass=EdiCpp

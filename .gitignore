@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.o
+*.out
+a.out
+build/
+dist/
+.idea/
+.vscode/

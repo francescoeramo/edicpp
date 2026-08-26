@@ -83,14 +83,5 @@ edicpp/
 └── edicpp.desktop
 ```
 
-## 📦 Build opzionale (binario)
 
-```bash
-pip install pyinstaller
-pyinstaller --noconfirm --windowed --name EdiCpp --add-data "edicpp:edicpp" edicpp/main.py
-```
-
-## 📄 Licenza
-
-MIT — Fatto con cura per `francescoeramo`.
 

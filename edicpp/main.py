@@ -47,7 +47,7 @@ class CodeEditor(QPlainTextEdit):
                 font = QFont("JetBrains Mono")
                 if not font.exactMatch():
                     font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        font.setPointSize(10)
+        font.setPointSize(11)
         font.setWeight(QFont.Weight.Normal)
         font.setStyleHint(QFont.StyleHint.Monospace)
         self.setFont(font)
@@ -141,21 +141,30 @@ class CodeEditor(QPlainTextEdit):
             super().keyPressEvent(event)
             self.insertPlainText(indent)
             return
+        # — auto-chiusura corretta: evita ()) —
+        # se premi chiusura e il carattere successivo è già quella chiusura, salta
+        closing = {")": "(", "]": "[", "}": "{", '"': '"', "'": "'"}
+        nxt_char = ""
+        cursor = self.textCursor()
+        block_text = cursor.block().text()
+        if cursor.positionInBlock() < len(block_text):
+            nxt_char = block_text[cursor.positionInBlock()]
+        if event.text() in closing and nxt_char == event.text():
+            # salta la chiusura già presente
+            cursor.movePosition(QTextCursor.MoveOperation.Right)
+            self.setTextCursor(cursor)
+            return
         pairs = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'"}
         if event.text() in pairs:
-            cursor = self.textCursor()
-            nxt = cursor.block().text()[cursor.positionInBlock():cursor.positionInBlock()+1] if cursor.positionInBlock() < len(cursor.block().text()) else ""
-            if nxt == pairs[event.text()] and event.text() in ('"', "'", ")", "]", "}"):
-                cursor.movePosition(QTextCursor.MoveOperation.Right)
-                self.setTextCursor(cursor)
-                return
             super().keyPressEvent(event)
             if event.text() in "([{":
-                cur = self.textCursor()
-                pos = cur.position()
-                cur.insertText(pairs[event.text()])
-                cur.setPosition(pos)
-                self.setTextCursor(cur)
+                # inserisci chiusura solo se non c'è già
+                if nxt_char != pairs[event.text()]:
+                    cur = self.textCursor()
+                    pos = cur.position()
+                    cur.insertText(pairs[event.text()])
+                    cur.setPosition(pos)
+                    self.setTextCursor(cur)
             return
         if event.key() == Qt.Key.Key_Tab:
             self.insertPlainText("    ")
@@ -305,7 +314,7 @@ class SearchBar(QWidget):
 class GuideDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Display Properties — Guida EdiCpp")
+        self.setWindowTitle("Display Properties — Guida EdiCPP")
         self.setModal(True)
         self.setMinimumSize(700, 600)
         self.setStyleSheet(STYLESHEET)
@@ -314,7 +323,7 @@ class GuideDialog(QDialog):
         layout.setSpacing(0)
 
         # Win98 title bar navy
-        title_bar = QLabel("  EdiCpp — Guida")
+        title_bar = QLabel("  EdiCPP — Guida")
         title_bar.setObjectName("Title")
         title_bar.setFixedHeight(20)
         layout.addWidget(title_bar)
@@ -414,7 +423,7 @@ class GuideDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("EdiCpp — Windows 98 Edition")
+        self.setWindowTitle("EdiCPP — Windows 98 Edition")
         self.resize(1280, 820)
         self.setMinimumSize(980, 640)
         self.current_folder = str(Path.home())
@@ -686,7 +695,7 @@ class MainWindow(QMainWindow):
             ed.cursorPositionChanged.connect(self.update_cursor_label)
             self.update_cursor_label()
             name = ed.file_path if ed.file_path else "Senza titolo"
-            self.setWindowTitle(f"{Path(name).name} — EdiCpp [Win98]")
+            self.setWindowTitle(f"{Path(name).name} — EdiCPP [Win98]")
         else:
             self.lbl_cursor.setText(" Ln 1, Col 1")
 
@@ -894,8 +903,8 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def show_about(self):
-        QMessageBox.about(self, "EdiCpp — Windows 98",
-            "<h3>EdiCpp — Windows 98 Edition</h3>"
+        QMessageBox.about(self, "EdiCPP — Windows 98",
+            "<h3>EdiCPP — Windows 98 Edition</h3>"
             "<p>Editor C++ leggero, nativo Fedora.<br>Desktop teal #008080, finestre #C0C0C0, title navy #000080.</p>"
             "<p>Alt+↑/↓ sposta la riga.</p>"
             "<p><b>Stack:</b> Python + PyQt6</p>"
@@ -921,7 +930,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("EdiCpp Win98")
+    app.setApplicationName("EdiCPP")
     app.setOrganizationName("francescoeramo")
     window = MainWindow()
     window.show()

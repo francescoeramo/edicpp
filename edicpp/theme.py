@@ -89,11 +89,11 @@ QToolButton {
     border-left: 1px solid #ffffff;
     border-bottom: 1px solid #404040;
     border-right: 1px solid #404040;
-    /* inner bevel */
-    padding: 4px 10px;
+    padding: 5px 12px;
     margin: 1px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
+    letter-spacing: 0.2px;
 }
 QToolButton:hover {
     background: #c0c0c0;
@@ -285,7 +285,7 @@ QStatusBar QLabel#Time {
     border-right: 1px solid #ffffff;
 }
 
-/* ── Buttons — 3D Win98, leggibili, peso normale ── */
+/* ── Buttons — 3D Win98, più leggibili ── */
 QPushButton {
     background: #c0c0c0;
     color: #000000;
@@ -293,9 +293,10 @@ QPushButton {
     border-left: 1px solid #ffffff;
     border-bottom: 1px solid #404040;
     border-right: 1px solid #404040;
-    padding: 5px 14px;
-    font-size: 11px;
+    padding: 6px 16px;
+    font-size: 12px;
     font-weight: 400;
+    letter-spacing: 0.2px;
 }
 QPushButton:hover { background: #c0c0c0; }
 QPushButton:pressed {

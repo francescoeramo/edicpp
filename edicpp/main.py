@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import (
     QAction, QFont, QColor, QPainter, QTextFormat, QTextCursor, QKeySequence, QFontDatabase,
-    QTextDocument
+    QTextDocument, QShortcut
 )
 from PyQt6.QtGui import QFontMetricsF
 from PyQt6.QtWidgets import QTextEdit
@@ -481,7 +481,13 @@ class MainWindow(QMainWindow):
         m_edit.addAction(a_down2)
         m_edit.addSeparator()
         act("Aumenta zoom", "Ctrl+=", self.zoom_in, m_edit)
+        act("Aumenta zoom (+)", "Ctrl++", self.zoom_in, m_edit)
         act("Riduci zoom", "Ctrl+-", self.zoom_out, m_edit)
+        # shortcut globali anche con focus nell'editor (fix Ctrl+Plus che altrimenti non arriva)
+        QShortcut(QKeySequence("Ctrl++"), self, self.zoom_in)
+        QShortcut(QKeySequence("Ctrl+="), self, self.zoom_in)
+        QShortcut(QKeySequence("Ctrl+-"), self, self.zoom_out)
+        QShortcut(QKeySequence("Ctrl+_"), self, self.zoom_out)
 
         act("Compila", "Ctrl+B", self.compile_only, m_run)
         act("Compila & Esegui", "F5", self.compile_run, m_run)
@@ -835,7 +841,13 @@ class MainWindow(QMainWindow):
         ed = self.current_editor()
         if ed:
             f = ed.font()
-            f.setPointSize(min(28, f.pointSize() + 1))
+            # gestisce sia pointSize che pixelSize (Courier/MS Sans fallback usa pixelSize)
+            if f.pointSize() > 0:
+                f.setPointSize(min(28, f.pointSize() + 1))
+            elif f.pixelSize() > 0:
+                f.setPixelSize(min(38, f.pixelSize() + 1))
+            else:
+                f.setPointSize(12)
             ed.setFont(f)
             ed.setTabStopDistance(QFontMetricsF(f).horizontalAdvance(' ') * 4)
 
@@ -843,7 +855,12 @@ class MainWindow(QMainWindow):
         ed = self.current_editor()
         if ed:
             f = ed.font()
-            f.setPointSize(max(7, f.pointSize() - 1))
+            if f.pointSize() > 0:
+                f.setPointSize(max(7, f.pointSize() - 1))
+            elif f.pixelSize() > 0:
+                f.setPixelSize(max(9, f.pixelSize() - 1))
+            else:
+                f.setPointSize(10)
             ed.setFont(f)
             ed.setTabStopDistance(QFontMetricsF(f).horizontalAdvance(' ') * 4)
 

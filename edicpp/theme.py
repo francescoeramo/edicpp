@@ -347,7 +347,6 @@ QPlainTextEdit, QTextEdit {
     border-right: 1px solid #ffffff;
     selection-background-color: #000080;
     selection-color: #ffffff;
-    font-size: 11px;
 }
 
 /* ── Dialogs — finestra grigia 3D ── */

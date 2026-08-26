@@ -127,15 +127,18 @@ class EmbeddedTerminal(QWidget):
         cursor.movePosition(QTextCursor.MoveOperation.End)
         fmt = QTextCharFormat()
         fmt.setForeground(QColor(color) if color else QColor("#c0c0c0"))
-        # gestisci backspace visivo: \b cancella carattere precedente
         for ch in text:
+            # ignora controllo tranne \n \t e gestisci backspace come cancellazione
             if ch == "\x08" or ch == "\x7f":
-                # cancella un carattere prima del cursore
                 if cursor.position() > self._input_start:
                     cursor.deletePreviousChar()
-                # anche se la sequenza è "\b \b" (backspace, spazio, backspace), il loop gestirà spazio come inserimento e secondo \b come cancellazione
-            else:
-                cursor.insertText(ch, fmt)
+                continue
+            if ch == "\r":
+                continue
+            if ord(ch) < 32 and ch not in ("\n", "\t"):
+                # carattere di controllo invisibile — ignora invece di mostrare quadratino
+                continue
+            cursor.insertText(ch, fmt)
         self.output.setTextCursor(cursor)
         self.output.ensureCursorVisible()
         sb = self.output.verticalScrollBar()

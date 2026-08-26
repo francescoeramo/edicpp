@@ -17,14 +17,14 @@ class CppHighlighter(QSyntaxHighlighter):
         return fmt
 
     def _init_rules(self):
-        # Colors - Tokyo Night inspired
-        kw_fmt   = self._fmt("#bb9af7", bold=True)   # keywords purple
-        type_fmt = self._fmt("#2ac3de", bold=True)   # types cyan
-        num_fmt  = self._fmt("#ff9e64")              # numbers orange
-        str_fmt  = self._fmt("#9ece6a")              # strings green
-        com_fmt  = self._fmt("#565f89", italic=True) # comments gray
-        pre_fmt  = self._fmt("#7dcfff")              # preprocessor cyan light
-        func_fmt = self._fmt("#7aa2f7")              # functions blue
+        # Retro amber/green phosphor palette on deep brown #0a0804
+        kw_fmt   = self._fmt("#ff7a00", bold=True)   # keywords - hot amber/orange
+        type_fmt = self._fmt("#ffd23f", bold=True)   # types - bright amber
+        num_fmt  = self._fmt("#ff9e64")              # numbers - peach
+        str_fmt  = self._fmt("#7ec869")              # strings - phosphor green
+        com_fmt  = self._fmt("#8a7a5a", italic=True) # comments - muted brown
+        pre_fmt  = self._fmt("#ff4d4d")              # preprocessor - red
+        func_fmt = self._fmt("#ffb000")              # functions - amber
 
         keywords = [
             "alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch",
@@ -44,20 +44,13 @@ class CppHighlighter(QSyntaxHighlighter):
             "istream","cin","cout","cerr","endl","auto"
         ]
 
-        # Keyword rule
         self.rules.append((QRegularExpression(r"\b(" + "|".join(keywords) + r")\b"), kw_fmt))
         self.rules.append((QRegularExpression(r"\b(" + "|".join(types) + r")\b"), type_fmt))
-
-        # Numbers
         self.rules.append((QRegularExpression(r"\b0x[0-9a-fA-F]+\b|\b0b[01]+\b|\b\d+\.?\d*(?:[eE][+-]?\d+)?[fFlL]?\b"), num_fmt))
-        # Strings
         self.rules.append((QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"'), str_fmt))
         self.rules.append((QRegularExpression(r"'[^'\\]*(\\.[^'\\]*)*'"), str_fmt))
-        # Preprocessor
         self.rules.append((QRegularExpression(r"^\s*#\s*\w+.*"), pre_fmt))
-        # Single line comment
         self.rules.append((QRegularExpression(r"//[^\n]*"), com_fmt))
-        # Function call highlight
         self.rules.append((QRegularExpression(r"\b[A-Za-z_]\w*(?=\s*\()"), func_fmt))
 
         self.comment_start = QRegularExpression(r"/\*")
@@ -70,8 +63,6 @@ class CppHighlighter(QSyntaxHighlighter):
             while it.hasNext():
                 m = it.next()
                 self.setFormat(m.capturedStart(), m.capturedLength(), fmt)
-
-        # multi-line comments
         self.setCurrentBlockState(0)
         start_idx = 0
         if self.previousBlockState() != 1:
@@ -79,7 +70,6 @@ class CppHighlighter(QSyntaxHighlighter):
             start_idx = m.capturedStart() if m.hasMatch() else -1
         else:
             start_idx = 0
-
         while start_idx >= 0:
             end_match = self.comment_end.match(text, start_idx)
             if end_match.hasMatch():

@@ -9,7 +9,7 @@ from PyQt6.QtGui import QFont, QTextCursor, QColor, QTextCharFormat
 
 
 class EmbeddedTerminal(QWidget):
-    """Arcade terminal — neon cyan on deep navy."""
+    """Win98 MS-DOS prompt — nero su nero, header grigio."""
     def __init__(self, workdir=None, parent=None):
         super().__init__(parent)
         self.workdir = workdir or os.path.expanduser("~")
@@ -25,57 +25,49 @@ class EmbeddedTerminal(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        # outer sunken frame like Win98
+        self.setStyleSheet("background:#c0c0c0;")
 
         header = QWidget()
-        header.setFixedHeight(34)
-        header.setStyleSheet("background:#0a0c1e; border:1px solid #1e2348; border-radius:8px;")
+        header.setFixedHeight(22)
+        header.setStyleSheet("background:#000080; border: none;")
         hl = QHBoxLayout(header)
-        hl.setContentsMargins(10, 4, 8, 4)
-        hl.setSpacing(8)
-        title = QLabel("◉ TERMINALE")
-        title.setStyleSheet("color:#00e5ff; font-size:10px; font-weight:500; letter-spacing:0.8px; border:none;")
+        hl.setContentsMargins(4, 2, 4, 2)
+        hl.setSpacing(6)
+        icon = QLabel("C:\\>")
+        icon.setStyleSheet("color:#ffffff; font-family:'MS Sans Serif'; font-size:11px; font-weight:700; border:none; background:transparent;")
+        hl.addWidget(icon)
+        title = QLabel("MS-DOS Prompt")
+        title.setStyleSheet("color:#ffffff; font-family:'MS Sans Serif'; font-size:11px; font-weight:700; border:none; background:transparent;")
         hl.addWidget(title)
-        # scanline hint
-        hint = QLabel("— bash — arcade ready")
-        hint.setStyleSheet("color:#6b73a3; font-size:10px; font-weight:400; border:none;")
-        hl.addWidget(hint)
         hl.addStretch()
-        led = QLabel("● REC")
-        led.setStyleSheet("color:#ff2e97; font-size:10px; font-weight:500; border:none;")
-        hl.addWidget(led)
         self.clear_btn = QPushButton("Pulisci")
-        self.clear_btn.setFixedHeight(24)
-        self.clear_btn.setFixedWidth(72)
-        # override to lighter weight
-        self.clear_btn.setStyleSheet("font-weight:400; font-size:11px;")
+        self.clear_btn.setFixedHeight(16)
+        self.clear_btn.setFixedWidth(52)
+        self.clear_btn.setStyleSheet("font-size:10px; padding:1px 4px;")
         self.clear_btn.clicked.connect(lambda: self.output.clear())
         hl.addWidget(self.clear_btn)
-        # add small bottom spacing container to avoid overlap
-        wrapper = QWidget()
-        wl = QVBoxLayout(wrapper)
-        wl.setContentsMargins(0, 0, 0, 0)
-        wl.setSpacing(6)
-        wl.addWidget(header)
 
-        layout.addWidget(wrapper)
+        layout.addWidget(header)
 
+        # terminal area sunken
         self.output = QPlainTextEdit()
         self.output.setReadOnly(False)
         self.output.setStyleSheet("""
             QPlainTextEdit {
-                background:#06080f;
-                border:1px solid #1e2348;
-                border-radius:8px;
-                color:#dbe2ff;
-                font-family:'JetBrains Mono','IBM Plex Mono','Courier New',monospace;
-                font-size:12px;
-                padding:8px;
+                background:#000000;
+                color:#c0c0c0;
+                border-top: 2px solid #404040;
+                border-left: 2px solid #404040;
+                border-bottom: 1px solid #ffffff;
+                border-right: 1px solid #ffffff;
+                font-family:'Courier New', monospace;
+                font-size:11px;
+                padding:4px;
             }
         """)
-        font = QFont("JetBrains Mono")
-        if not font.exactMatch():
-            font = QFont("IBM Plex Mono")
-        font.setPointSize(10)
+        font = QFont("Courier New")
+        font.setPointSize(9)
         font.setWeight(QFont.Weight.Normal)
         self.output.setFont(font)
         layout.addWidget(self.output, 1)
@@ -90,7 +82,7 @@ class EmbeddedTerminal(QWidget):
             stdout=slave_fd,
             stderr=slave_fd,
             cwd=self.workdir,
-            env={**os.environ, "PS1": r"\[\e[38;5;51m\]▸\[\e[0m\] ", "TERM": "xterm-256color"},
+            env={**os.environ, "PS1": r"C:\\> ", "TERM": "xterm-256color"},
             text=False,
             bufsize=0,
         )
@@ -98,7 +90,7 @@ class EmbeddedTerminal(QWidget):
         import fcntl
         flags = fcntl.fcntl(self.master_fd, fcntl.F_GETFL)
         fcntl.fcntl(self.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-        self._append("\n", "#6b73a3")
+        self._append("Microsoft(R) Windows 98\n(C)Copyright Microsoft Corp 1981-1998.\n\n", "#808080")
 
     def _read_output(self):
         if self.master_fd is None:
@@ -121,7 +113,7 @@ class EmbeddedTerminal(QWidget):
         cursor = self.output.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         fmt = QTextCharFormat()
-        fmt.setForeground(QColor(color) if color else QColor("#dbe2ff"))
+        fmt.setForeground(QColor(color) if color else QColor("#c0c0c0"))
         cursor.insertText(text, fmt)
         self.output.setTextCursor(cursor)
         self.output.ensureCursorVisible()
@@ -150,7 +142,7 @@ class EmbeddedTerminal(QWidget):
                 cursor = self.output.textCursor()
                 cursor.select(QTextCursor.SelectionType.LineUnderCursor)
                 line = cursor.selectedText()
-                cmd = line.split("▸")[-1].strip() if "▸" in line else self.output.textCursor().block().text().strip()
+                cmd = line.split("C:\\>")[-1].strip() if "C:\\>" in line else self.output.textCursor().block().text().strip()
                 if self.master_fd:
                     try: os.write(self.master_fd, (cmd + "\n").encode())
                     except OSError: pass
@@ -164,7 +156,7 @@ class EmbeddedTerminal(QWidget):
         if self.master_fd:
             try:
                 os.write(self.master_fd, (cmd + "\n").encode())
-                self._append(f"\n$ {cmd}\n", "#00e5ff")
+                self._append(f"\nC:\\> {cmd}\n", "#ffffff")
             except OSError:
                 pass
 

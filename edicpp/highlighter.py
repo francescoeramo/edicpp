@@ -17,14 +17,14 @@ class CppHighlighter(QSyntaxHighlighter):
         return fmt
 
     def _init_rules(self):
-        # Arcade neon on deep navy #06080f
-        kw_fmt   = self._fmt("#ff2e97", bold=True)   # keywords magenta neon
-        type_fmt = self._fmt("#00e5ff")              # types cyan neon
-        num_fmt  = self._fmt("#ffea00")              # numbers yellow arcade
-        str_fmt  = self._fmt("#00ff88")              # strings green neon
-        com_fmt  = self._fmt("#6b73a3", italic=True) # comments muted
-        pre_fmt  = self._fmt("#ff6b35")              # preprocessor orange
-        func_fmt = self._fmt("#ffe600")              # functions yellow
+        # Classic Visual C++ 6 / Win98 on white #FFFFFF
+        kw_fmt   = self._fmt("#0000ff", bold=True)  # keywords blue
+        type_fmt = self._fmt("#008080")             # types teal
+        num_fmt  = self._fmt("#ff0000")             # numbers red
+        str_fmt  = self._fmt("#a00000")             # strings dark red / brown
+        com_fmt  = self._fmt("#008000", italic=True)# comments green
+        pre_fmt  = self._fmt("#800080")             # preprocessor purple
+        func_fmt = self._fmt("#000000")             # functions black
 
         keywords = [
             "alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch",

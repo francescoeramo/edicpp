@@ -40,28 +40,28 @@ class CodeEditor(QPlainTextEdit):
         super().__init__(parent)
         self.file_path = file_path
         self._line_number_area = LineNumberArea(self)
-        font = QFont("JetBrains Mono")
+        font = QFont("Courier New")
         if not font.exactMatch():
-            font = QFont("IBM Plex Mono")
+            font = QFont("MS Sans Serif")
             if not font.exactMatch():
-                font = QFont("Courier New")
+                font = QFont("JetBrains Mono")
                 if not font.exactMatch():
                     font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        font.setPointSize(11)
+        font.setPointSize(10)
         font.setWeight(QFont.Weight.Normal)
         font.setStyleHint(QFont.StyleHint.Monospace)
         self.setFont(font)
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.setTabStopDistance(QFontMetricsF(font).horizontalAdvance(' ') * 4)
         self.highlighter = CppHighlighter(self.document())
-        # arcade editor — deep navy, neon selection
+        # Win98 editor — bianco, testo nero
         self.setStyleSheet("""
             QPlainTextEdit {
-                background:#06080f;
-                color:#dbe2ff;
+                background:#ffffff;
+                color:#000000;
                 border:none;
-                selection-background-color:#1a1f3d;
-                selection-color:#00e5ff;
+                selection-background-color:#000080;
+                selection-color:#ffffff;
                 padding-left:4px;
             }
         """)
@@ -70,7 +70,7 @@ class CodeEditor(QPlainTextEdit):
         self.cursorPositionChanged.connect(self.highlightCurrentLine)
         self.updateLineNumberAreaWidth(0)
         self.highlightCurrentLine()
-        self.setPlaceholderText("// INSERT COIN — inizia a scrivere C++...")
+        self.setPlaceholderText("// Inizia a scrivere C++...")
 
     def lineNumberAreaWidth(self):
         digits = len(str(max(1, self.blockCount())))
@@ -95,8 +95,8 @@ class CodeEditor(QPlainTextEdit):
 
     def lineNumberAreaPaintEvent(self, event):
         painter = QPainter(self._line_number_area)
-        painter.fillRect(event.rect(), QColor("#080a18"))
-        painter.setPen(QColor("#1e2348"))
+        painter.fillRect(event.rect(), QColor("#c0c0c0"))
+        painter.setPen(QColor("#808080"))
         painter.drawLine(self._line_number_area.width()-1, event.rect().top(), self._line_number_area.width()-1, event.rect().bottom())
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
@@ -106,12 +106,14 @@ class CodeEditor(QPlainTextEdit):
             if block.isVisible() and bottom >= event.rect().top():
                 number = str(block_number + 1)
                 is_current = (block_number == self.textCursor().blockNumber())
-                painter.setPen(QColor("#00e5ff") if is_current else QColor("#6b73a3"))
+                painter.setPen(QColor("#000000") if is_current else QColor("#404040"))
                 f = painter.font()
-                f.setWeight(QFont.Weight.Medium if is_current else QFont.Weight.Normal)
-                f.setPointSize(10)
+                # Win98: numeri non grassetto esagerato, solo normale
+                f.setWeight(QFont.Weight.Normal)
+                f.setPointSize(9)
+                f.setFamily("MS Sans Serif")
                 painter.setFont(f)
-                painter.drawText(0, int(top), self._line_number_area.width() - 12, self._fm().height(),
+                painter.drawText(0, int(top), self._line_number_area.width() - 10, self._fm().height(),
                                  Qt.AlignmentFlag.AlignRight, number)
             block = block.next()
             top = bottom
@@ -122,7 +124,7 @@ class CodeEditor(QPlainTextEdit):
         extra = []
         if not self.isReadOnly():
             sel = QTextEdit.ExtraSelection()
-            sel.format.setBackground(QColor("#0e1126"))
+            sel.format.setBackground(QColor("#e8e8e8"))
             sel.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
             sel.cursor = self.textCursor()
             sel.cursor.clearSelection()
@@ -247,24 +249,24 @@ class SearchBar(QWidget):
     def __init__(self, editor_getter, parent=None):
         super().__init__(parent)
         self.editor_getter = editor_getter
-        self.setFixedHeight(40)
-        self.setStyleSheet("background:#0a0c1e; border:1px solid #1e2348; border-radius:8px;")
+        self.setFixedHeight(28)
+        self.setStyleSheet("background:#c0c0c0; border:none;")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 5, 8, 5)
-        layout.setSpacing(6)
-        lbl = QLabel("CERCA")
-        lbl.setStyleSheet("color:#6b73a3; font-size:10px; font-weight:500; letter-spacing:0.6px; border:none;")
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+        lbl = QLabel("Cerca:")
+        lbl.setStyleSheet("color:#000000; font-size:11px; font-weight:400; border:none; background:transparent;")
         layout.addWidget(lbl)
         self.input = QLineEdit()
-        self.input.setPlaceholderText("cerca nel file…")
-        self.input.setFixedHeight(28)
+        self.input.setPlaceholderText("cerca…")
+        self.input.setFixedHeight(20)
         layout.addWidget(self.input, 1)
         self.prev_btn = QPushButton("▲")
         self.next_btn = QPushButton("▼")
         self.close_btn = QPushButton("✕")
         for b in (self.prev_btn, self.next_btn, self.close_btn):
-            b.setFixedSize(30, 28)
-            b.setStyleSheet("font-weight:400;")
+            b.setFixedSize(22, 20)
+            b.setStyleSheet("font-size:10px; padding:0px; font-weight:400;")
         layout.addWidget(self.prev_btn)
         layout.addWidget(self.next_btn)
         layout.addWidget(self.close_btn)
@@ -303,24 +305,28 @@ class SearchBar(QWidget):
 class GuideDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Guida — EdiCpp ARCADE")
+        self.setWindowTitle("Display Properties — Guida EdiCpp")
         self.setModal(True)
-        self.setMinimumSize(740, 640)
-        self.setStyleSheet(STYLESHEET + "QDialog{background:#0a0c1e; border:1px solid #1e2348; border-radius:14px;}")
+        self.setMinimumSize(700, 600)
+        self.setStyleSheet(STYLESHEET)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(0)
 
-        title = QLabel("◆ EDICPP — GUIDA ARCADE")
-        title.setObjectName("Title")
-        subtitle = QLabel("ARCADE EDITION  •  Neon cyan/magenta  •  Fedora nativo  •  C++17")
+        # Win98 title bar navy
+        title_bar = QLabel("  EdiCpp — Guida")
+        title_bar.setObjectName("Title")
+        title_bar.setFixedHeight(20)
+        layout.addWidget(title_bar)
+
+        subtitle = QLabel("Windows 98 Edition  •  Teal #008080  •  Fedora  •  C++17")
         subtitle.setObjectName("Subtitle")
-        layout.addWidget(title)
+        subtitle.setStyleSheet("background:#c0c0c0; color:#000000; padding:4px 6px; font-size:11px; font-weight:400; border:none;")
         layout.addWidget(subtitle)
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color:#1e2348;")
+        sep.setStyleSheet("color:#808080;")
         layout.addWidget(sep)
 
         scroll = QScrollArea()
@@ -336,57 +342,70 @@ class GuideDialog(QDialog):
             v.addWidget(h)
             for it in items:
                 row = QHBoxLayout()
-                dot = QLabel("▸")
-                dot.setStyleSheet("color:#00e5ff; font-size:12px; font-weight:400;")
-                dot.setFixedWidth(18)
+                dot = QLabel("•")
+                dot.setStyleSheet("color:#000000; font-size:11px; font-weight:400; background:transparent;")
+                dot.setFixedWidth(12)
                 lbl = QLabel(it)
                 lbl.setWordWrap(True)
-                lbl.setStyleSheet("color:#dbe2ff; font-size:12px; font-weight:400;")
+                lbl.setStyleSheet("color:#000000; font-size:11px; font-weight:400; background:transparent;")
                 lbl.setTextFormat(Qt.TextFormat.RichText)
                 row.addWidget(dot, alignment=Qt.AlignmentFlag.AlignTop)
                 row.addWidget(lbl, 1)
                 v.addLayout(row)
             v.addSpacing(4)
 
-        section("SCORCIATOIE", [
+        section("Scorciatoie", [
             "<b>Ctrl + N</b> — Nuovo &nbsp; <b>Ctrl + O</b> — Apri &nbsp; <b>Ctrl + S</b> — Salva &nbsp; <b>Ctrl + Shift + S</b> — Salva con nome",
             "<b>Ctrl + F</b> — Cerca &nbsp; <b>Ctrl + /</b> — Commenta &nbsp; <b>Ctrl + Z / Y</b> — Annulla/Ripeti",
             "<b>Alt + ↑ / ↓</b> — Sposta riga sopra/sotto &nbsp; <b>Shift + Alt + ↑/↓</b> — identico",
             "<b>Ctrl + Q</b> — Esci &nbsp; <b>Ctrl + +/-</b> — Zoom &nbsp; <b>F5</b> — Compila &amp; Esegui &nbsp; <b>Ctrl + B</b> — Compila",
             "<b>Ctrl + E</b> — Explorer &nbsp; <b>Ctrl + J</b> — Terminale",
         ])
-        section("WORKFLOW C++", [
-            "Highlight neon: keyword <b style='color:#ff2e97'>magenta</b>, tipi <b style='color:#00e5ff'>cyan</b>, stringhe <b style='color:#00ff88'>verde</b>.",
-            "Premi <b>F5</b>: compila con <code>g++ -std=c++17 -O2 -Wall -Wextra</code> ed esegue nel terminale arcade.",
-            "Errori nel terminale neon — doppio click sull'explorer per correggere.",
+        section("Workflow C++", [
+            "Highlight classico: keyword <b style='color:#0000ff'>blu</b>, commenti <b style='color:#008000'>verde</b>, stringhe <b style='color:#a00000'>rosso scuro</b>.",
+            "Premi <b>F5</b>: compila con <code>g++ -std=c++17 -O2 -Wall -Wextra</code> ed esegue nel prompt MS-DOS.",
+            "Errori nel terminale — doppio click sull'explorer per correggere.",
         ])
-        section("TERMINALE (IN BASSO)", [
-            "Bash vera via <b>pty</b>: supporta input, <b>Ctrl+C</b>, <b>Ctrl+L</b>, <code>make</code>, <code>gdb</code>, <code>./a.out &lt; input.txt</code>.",
-            "Pulsante <b>Pulisci</b> per svuotare. Prompt <b style='color:#00e5ff'>▸</b> cyan.",
+        section("Terminale (in basso)", [
+            "Bash vera via <b>pty</b>: supporta input, <b>Ctrl+C</b>, <b>Ctrl+L</b>, <code>make</code>, <code>gdb</code>.",
+            "Pulsante <b>Pulisci</b> per svuotare. Prompt <b>C:\\></b>.",
         ])
-        section("ARCADE TIPS", [
-            "Tema <b>cabinato</b>: nero profondo, neon cyan/magenta, bordi 1px soft — leggibile.",
-            "Line numbers su #080a18, riga corrente #0e1126 con glow cyan.",
-            "Sposta righe con <b>Alt+↑/↓</b> — riordina include/flow senza taglia/incolla.",
-            "Tutto nativo Qt6 — leggero su Fedora, zero webview.",
+        section("Tips anni '90", [
+            "Tema <b>Windows 98</b>: desktop teal #008080, finestre grigie #C0C0C0, title bar navy #000080.",
+            "Bordi 3D rialzati, font MS Sans Serif 8pt — leggibile, non grassetto.",
+            "Sposta righe con <b>Alt+↑/↓</b> — riordina senza taglia/incolla.",
+            "Nativo Qt6 — leggero su Fedora.",
         ])
-        section("REQUISITI", [
+        section("Requisiti", [
             "<b>g++</b> (<code>sudo dnf install gcc-c++</code>), <b>Python 3.10+</b>, <b>PyQt6</b>.",
         ])
 
         v.addStretch()
         scroll.setWidget(inner)
+        # scroll sunken inset like Win98
+        scroll.setStyleSheet("QScrollArea{border-top:2px solid #404040; border-left:2px solid #404040; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; background:#c0c0c0;}")
         layout.addWidget(scroll, 1)
 
-        # Bottone sotto senza sovrapposizioni: layout dedicato con margini
+        # Bottoni Win98 in basso — OK Cancel Apply come screenshot
         btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 8, 0, 0)
+        btn_row.setSpacing(6)
         btn_row.addStretch()
-        btn = QPushButton("Avvia arcade →")
-        btn.setObjectName("Accent")
-        btn.setFixedHeight(36)
-        btn.setMinimumWidth(180)
-        btn.clicked.connect(self.accept)
-        btn_row.addWidget(btn)
+        btn_ok = QPushButton("OK")
+        btn_ok.setFixedWidth(72)
+        btn_ok.setFixedHeight(22)
+        btn_ok.clicked.connect(self.accept)
+        btn_cancel = QPushButton("Cancel")
+        btn_cancel.setFixedWidth(72)
+        btn_cancel.setFixedHeight(22)
+        btn_cancel.clicked.connect(self.reject)
+        btn_apply = QPushButton("Apply")
+        btn_apply.setFixedWidth(72)
+        btn_apply.setFixedHeight(22)
+        btn_apply.setEnabled(False)
+        btn_row.addWidget(btn_ok)
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_apply)
         layout.addLayout(btn_row)
 
 
@@ -395,14 +414,14 @@ class GuideDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("EdiCpp ARCADE — Cabinato // C++")
+        self.setWindowTitle("EdiCpp — Windows 98 Edition")
         self.resize(1280, 820)
         self.setMinimumSize(980, 640)
         self.current_folder = str(Path.home())
         self._setup_ui()
         self._apply_theme()
         self._connect_signals()
-        self.statusBar().showMessage(" INSERT COIN  •  Alt+↑/↓ sposta riga  •  F5 compila & esegui ")
+        self.lbl_hint.setText(" Pronto  •  Alt+↑↓ sposta  •  F5 esegui ")
         self.new_file()
 
     def _apply_theme(self):
@@ -501,45 +520,43 @@ class MainWindow(QMainWindow):
         tb.addSeparator()
         tb_btn("Guida", self.show_guide, "Guida (F1)")
 
-        # — Central — margini ampi per evitare sovrapposizioni sotto
+        # — Central — Win98: desktop teal, area grigia incassata
         central = QWidget()
+        central.setStyleSheet("background:#c0c0c0;")
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
-        root_layout.setContentsMargins(8, 8, 8, 8)
-        root_layout.setSpacing(8)
+        root_layout.setContentsMargins(4, 4, 4, 4)
+        root_layout.setSpacing(4)
 
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.main_splitter.setHandleWidth(6)
+        self.main_splitter.setHandleWidth(4)
+        self.main_splitter.setStyleSheet("QSplitter::handle{background:#c0c0c0;}")
         self.main_splitter.setChildrenCollapsible(False)
 
-        # Explorer — arcade header minimal, leggibile
+        # Explorer — Win98 header grigio rialzato
         self.explorer_wrap = QWidget()
-        self.explorer_wrap.setMinimumWidth(210)
-        self.explorer_wrap.setMaximumWidth(400)
+        self.explorer_wrap.setStyleSheet("background:#c0c0c0;")
+        self.explorer_wrap.setMinimumWidth(200)
+        self.explorer_wrap.setMaximumWidth(360)
         exp_layout = QVBoxLayout(self.explorer_wrap)
         exp_layout.setContentsMargins(0, 0, 0, 0)
         exp_layout.setSpacing(0)
         exp_header = QWidget()
-        exp_header.setFixedHeight(34)
-        exp_header.setStyleSheet("background:#0a0c1e; border:1px solid #1e2348; border-radius:8px;")
+        exp_header.setFixedHeight(26)
+        exp_header.setStyleSheet("background:#c0c0c0; border-top:1px solid #ffffff; border-left:1px solid #ffffff; border-bottom:1px solid #808080; border-right:1px solid #404040;")
         eh = QHBoxLayout(exp_header)
-        eh.setContentsMargins(10, 4, 8, 4)
-        eh.setSpacing(6)
-        title = QLabel("EXPLORER")
-        title.setStyleSheet("color:#6b73a3; font-size:10px; font-weight:500; letter-spacing:0.8px; border:none;")
+        eh.setContentsMargins(6, 2, 4, 2)
+        eh.setSpacing(4)
+        title = QLabel("Esplora")
+        title.setStyleSheet("color:#000000; font-size:11px; font-weight:400; border:none; background:transparent;")
         eh.addWidget(title)
         eh.addStretch()
-        self.btn_open_folder = QPushButton("Apri")
-        self.btn_open_folder.setFixedHeight(24)
-        self.btn_open_folder.setFixedWidth(64)
-        self.btn_open_folder.setStyleSheet("font-weight:400; font-size:11px;")
+        self.btn_open_folder = QPushButton("Apri...")
+        self.btn_open_folder.setFixedHeight(20)
+        self.btn_open_folder.setFixedWidth(58)
+        self.btn_open_folder.setStyleSheet("font-weight:400; font-size:11px; padding:1px 6px;")
         eh.addWidget(self.btn_open_folder)
         exp_layout.addWidget(exp_header)
-        # small gap to avoid touching tree
-        gap = QWidget()
-        gap.setFixedHeight(6)
-        gap.setStyleSheet("background:transparent;")
-        exp_layout.addWidget(gap)
 
         self.tree = QTreeView()
         self.model = None
@@ -595,25 +612,46 @@ class MainWindow(QMainWindow):
 
         root_layout.addWidget(self.main_splitter, 1)
 
+        # — Footer Win98 — pannelli incassati separati, NO sovrapposizione
         sb = QStatusBar()
         sb.setSizeGripEnabled(False)
+        sb.setFixedHeight(24)
+        sb.setStyleSheet("QStatusBar{ background:#c0c0c0; border-top:1px solid #ffffff; }")
         self.setStatusBar(sb)
+        # area messaggio a sinistra (stretch)
+        self.lbl_hint = QLabel(" Pronto ")
+        self.lbl_hint.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
+        self.lbl_hint.setMinimumWidth(80)
+        # pannelli a destra fissi, larghezze compatte per non accavallarsi
         self.lbl_cursor = QLabel("Ln 1, Col 1")
-        self.lbl_cursor.setMinimumWidth(110)
-        self.lbl_lang = QLabel("C++17")
-        self.lbl_lang.setObjectName("Lang")
-        self.lbl_lang.setMinimumWidth(56)
+        self.lbl_cursor.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
+        self.lbl_cursor.setFixedWidth(110)
         self.lbl_encoding = QLabel("UTF-8")
-        self.lbl_encoding.setMinimumWidth(58)
-        self.lbl_move_hint = QLabel("Alt+↑/↓ sposta riga")
-        self.lbl_move_hint.setStyleSheet("color:#6b73a3; font-size:10px; font-weight:400; border:none; padding:2px 8px;")
-        self.lbl_move_hint.setMinimumWidth(140)
-        sb.addWidget(self.lbl_move_hint)
-        sb.addPermanentWidget(self.lbl_cursor)
-        sb.addPermanentWidget(self.lbl_encoding)
-        sb.addPermanentWidget(self.lbl_lang)
-        # ensure statusbar doesn't overlap central: give it fixed height
-        sb.setFixedHeight(26)
+        self.lbl_encoding.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
+        self.lbl_encoding.setFixedWidth(60)
+        self.lbl_lang = QLabel("C++")
+        self.lbl_lang.setObjectName("Lang")
+        self.lbl_lang.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 8px; font-size:11px; font-weight:400;")
+        self.lbl_lang.setFixedWidth(44)
+        self.lbl_move = QLabel("Alt+↑↓ sposta")
+        self.lbl_move.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
+        self.lbl_move.setFixedWidth(112)
+        self.lbl_time = QLabel(" 7:28 PM")
+        self.lbl_time.setObjectName("Time")
+        self.lbl_time.setStyleSheet("border-top:1px solid #808080; border-left:1px solid #808080; border-bottom:1px solid #ffffff; border-right:1px solid #ffffff; padding:1px 6px; font-size:11px; font-weight:400;")
+        self.lbl_time.setFixedWidth(62)
+        sb.addWidget(self.lbl_hint, 1)
+        sb.addPermanentWidget(self.lbl_move, 0)
+        sb.addPermanentWidget(self.lbl_cursor, 0)
+        sb.addPermanentWidget(self.lbl_encoding, 0)
+        sb.addPermanentWidget(self.lbl_lang, 0)
+        sb.addPermanentWidget(self.lbl_time, 0)
+        # timer orario Win98
+        from PyQt6.QtCore import QTimer
+        self._clock = QTimer(self)
+        self._clock.timeout.connect(lambda: self.lbl_time.setText(" " + __import__('time').strftime("%I:%M %p")))
+        self._clock.start(60000)
+        self.lbl_time.setText(" " + __import__('time').strftime("%I:%M %p"))
 
     def _set_folder_model(self, path):
         from PyQt6.QtGui import QFileSystemModel
@@ -648,9 +686,9 @@ class MainWindow(QMainWindow):
             ed.cursorPositionChanged.connect(self.update_cursor_label)
             self.update_cursor_label()
             name = ed.file_path if ed.file_path else "Senza titolo"
-            self.setWindowTitle(f"{Path(name).name} — EdiCpp ARCADE")
+            self.setWindowTitle(f"{Path(name).name} — EdiCpp [Win98]")
         else:
-            self.lbl_cursor.setText(" Ln 1, Col 1 ")
+            self.lbl_cursor.setText(" Ln 1, Col 1")
 
     def update_cursor_label(self):
         ed = self.current_editor()
@@ -659,7 +697,7 @@ class MainWindow(QMainWindow):
         cur = ed.textCursor()
         line = cur.blockNumber() + 1
         col = cur.columnNumber() + 1
-        self.lbl_cursor.setText(f" Ln {line}, Col {col} ")
+        self.lbl_cursor.setText(f" Ln {line}, Col {col}")
 
     def on_tree_double_click(self, index):
         path = self.model.filePath(index)
@@ -706,13 +744,17 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentIndex(idx)
         ed.textChanged.connect(lambda: self.mark_dirty(ed))
         ed.cursorPositionChanged.connect(self.update_cursor_label)
-        self.statusBar().showMessage(f"Aperto: {path}", 3000)
+        self.lbl_hint.setText(f" Aperto: {Path(path).name} ")
+        from PyQt6.QtCore import QTimer as _QTimer
+        _QTimer.singleShot(3000, lambda: self.lbl_hint.setText(" Pronto "))
 
     def open_folder(self):
         path = QFileDialog.getExistingDirectory(self, "Apri cartella", self.current_folder)
         if path:
             self._set_folder_model(path)
-            self.statusBar().showMessage(f"Workspace: {path}", 3000)
+            self.lbl_hint.setText(f" Cartella: {Path(path).name} ")
+            from PyQt6.QtCore import QTimer as _QTimer2
+            _QTimer2.singleShot(3000, lambda: self.lbl_hint.setText(" Pronto "))
 
     def save_file(self):
         ed = self.current_editor()
@@ -724,7 +766,9 @@ class MainWindow(QMainWindow):
             Path(ed.file_path).write_text(ed.toPlainText(), encoding="utf-8")
             ed.document().setModified(False)
             self.mark_dirty(ed)
-            self.statusBar().showMessage(f"Salvato: {ed.file_path}", 2000)
+            self.lbl_hint.setText(f" Salvato: {Path(ed.file_path).name} ")
+            from PyQt6.QtCore import QTimer as _QTimer3
+            _QTimer3.singleShot(2000, lambda: self.lbl_hint.setText(" Pronto "))
             idx = self.tabs.indexOf(ed)
             self.tabs.setTabText(idx, Path(ed.file_path).name)
         except Exception as e:
@@ -850,9 +894,9 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def show_about(self):
-        QMessageBox.about(self, "EdiCpp ARCADE",
-            "<h3>◆ EdiCpp ARCADE</h3>"
-            "<p>Editor C++ leggero, nativo Fedora.<br>Cabinato neon cyan/magenta — leggibile, pulito.</p>"
+        QMessageBox.about(self, "EdiCpp — Windows 98",
+            "<h3>EdiCpp — Windows 98 Edition</h3>"
+            "<p>Editor C++ leggero, nativo Fedora.<br>Desktop teal #008080, finestre #C0C0C0, title navy #000080.</p>"
             "<p>Alt+↑/↓ sposta la riga.</p>"
             "<p><b>Stack:</b> Python + PyQt6</p>"
             "<p><small>github.com/francescoeramo/edicpp</small></p>"
@@ -877,7 +921,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("EdiCpp ARCADE")
+    app.setApplicationName("EdiCpp Win98")
     app.setOrganizationName("francescoeramo")
     window = MainWindow()
     window.show()

@@ -112,12 +112,15 @@ class EmbeddedTerminal(QWidget):
                     clean = ansi.sub("", text)
                     clean = clean.replace("\r\n", "\n").replace("\r", "\n")
                     self._append(clean, None)
-                    # aggiorna input_start solo quando appare un nuovo prompt (termina con $ o # o > + spazio)
+                    # aggiorna input_start su prompt shell ($/#) o prompt programma (: )
                     stripped = clean.rstrip()
-                    if stripped.endswith("$") or stripped.endswith("#") or stripped.endswith(">") or "$ " in clean[-6:]:
+                    if (stripped.endswith("$") or stripped.endswith("#") or stripped.endswith(">") or stripped.endswith(":")
+                        or "$ " in clean[-6:] or ": " in clean[-10:]):
                         self._input_start = self.output.document().characterCount() - 1
-                    # se è la prima uscita con welcome, imposta comunque
                     if "Windows 98" in clean:
+                        self._input_start = self.output.document().characterCount() - 1
+                    # anche se è solo un prompt senza newline (es. "Inserisci...: "), aggiorna subito
+                    if clean.endswith(": ") or clean.endswith("$ "):
                         self._input_start = self.output.document().characterCount() - 1
         except OSError:
             pass
@@ -149,13 +152,27 @@ class EmbeddedTerminal(QWidget):
         self._input_start = 0
 
     def _get_input_text(self):
-        """Testo digitato dall'utente dopo l'ultimo prompt."""
-        doc = self.output.document()
-        # prendi tutto da _input_start a fine
-        cursor = QTextCursor(doc)
-        cursor.setPosition(self._input_start)
-        cursor.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
-        return cursor.selectedText().replace("\u2029", "\n")
+        """Prende solo ciò che l'utente ha digitato dopo il prompt (shell $  o programma : )."""
+        block_text = self.output.textCursor().block().text()
+        # cerca l'ultimo delimitatore di prompt nella riga corrente
+        for delim in ["$ ", "# ", "> ", ": ", "C:\\> ", "]$ "]:
+            if delim in block_text:
+                return block_text.rsplit(delim, 1)[-1]
+        # se nessun delimitatore, usa il testo dopo _input_start come fallback
+        try:
+            doc = self.output.document()
+            if 0 <= self._input_start < doc.characterCount():
+                cur = QTextCursor(doc)
+                cur.setPosition(self._input_start)
+                cur.movePosition(QTextCursor.MoveOperation.End, QTextCursor.MoveMode.KeepAnchor)
+                txt = cur.selectedText().replace("\u2029", "\n")
+                # se contiene newline, prendi ultima riga
+                if "\n" in txt:
+                    txt = txt.split("\n")[-1]
+                return txt
+        except:
+            pass
+        return block_text
 
     def _on_cursor_changed(self):
         # non fare nulla qui, gestito in eventFilter
